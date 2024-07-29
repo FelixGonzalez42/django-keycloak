@@ -41,7 +41,7 @@ Install requirement.
 
 .. code-block:: bash
 
-    $ pip install git+https://github.com/skamansam/django-keycloak.git
+    $ pip install git+https://github.com/Tehnari/django-keycloak.git
 
 Setup
 =====
