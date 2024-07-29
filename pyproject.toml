@@ -1,12 +1,13 @@
 [tool.poetry]
-name = "django42-keycloak"
+name = "django-keycloak"
 version = "0.2.9"
 description = "Integrate Keycloak with Django 4.2+"
 homepage = 'https://github.com/skamansam/django-keycloak'
 repository = 'https://github.com/skamansam/django-keycloak'
-keywords = ["django", "keycloak", "auth", "django42", "python311"]
+keywords = ["django", "keycloak", "auth", "django42", "python311","django-keycloak"]
 license = "MIT"
 authors = [
+  "Constantin Sclifos" <sclifcon@gmail.com>,
   "Samuel C. Tyler <skamansam@gmail.com>",
   "Ahmad Dabo <dabo.cs@gmail.com>",
   "Peter Slump <peter@yarf.nl>",

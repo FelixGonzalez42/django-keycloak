@@ -72,6 +72,8 @@ Release Notes
 =============
 
 **unreleased**
+* Changed name for the project from django42-keycloak to django-keycloak. Needed to prevent compatibility issues with existing code.
+
 **v0.1.2**
 
 **v0.2.5**
