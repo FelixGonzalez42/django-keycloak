@@ -8,7 +8,7 @@ authors = ["Samuel C. Tyler <skamansam@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-Django = "^4.2.4"
+Django = "^4.2.14"
 
 [tool.poetry.group.dev.dependencies]
 django-dynamic-fixtures = "^0.2.1"
