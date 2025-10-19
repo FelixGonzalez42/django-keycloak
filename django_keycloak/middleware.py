@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -9,6 +10,35 @@ from django.utils.functional import SimpleLazyObject
 from django_keycloak.models import Realm
 from django_keycloak.auth import get_remote_user
 from django_keycloak.response import HttpResponseNotAuthorized
+
+
+def _extract_bearer_token(header_value: Optional[str]) -> Optional[str]:
+    """Safely extract a bearer token from an Authorization header."""
+
+    if not header_value:
+        return None
+
+    if not isinstance(header_value, str):
+        header_value = str(header_value)
+
+    value = header_value.strip()
+    if not value:
+        return None
+
+    # Split on whitespace to avoid index errors on malformed headers
+    parts = value.split(None, 1)
+    if len(parts) != 2:
+        return None
+
+    scheme, token = parts
+    if scheme.lower() != "bearer":
+        return None
+
+    token = token.strip()
+    if not token or "\r" in token or "\n" in token:
+        return None
+
+    return token
 
 
 def get_realm(request):
@@ -90,13 +120,14 @@ class KeycloakStatelessBearerAuthenticationMiddleware(BaseKeycloakMiddleware):
                    settings.KEYCLOAK_BEARER_AUTHENTICATION_EXEMPT_PATHS):
                 return
 
-        if self.header_key not in request.META:
+        token = _extract_bearer_token(request.META.get(self.header_key))
+        if not token:
             return HttpResponseNotAuthorized(
                 attributes={'realm': request.realm.name})
 
         user = authenticate(
             request=request,
-            access_token=request.META[self.header_key].split(' ')[1]
+            access_token=token,
         )
 
         if user is None:
