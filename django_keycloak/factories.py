@@ -1,5 +1,8 @@
 import factory
 
+import factory
+from factory.django import DjangoModelFactory
+
 from django.contrib.auth import get_user_model
 
 from django_keycloak.models import (
@@ -10,7 +13,7 @@ from django_keycloak.models import (
 )
 
 
-class UserFactory(factory.DjangoModelFactory):
+class UserFactory(DjangoModelFactory):
 
     class Meta(object):
         model = get_user_model()
@@ -18,7 +21,7 @@ class UserFactory(factory.DjangoModelFactory):
     username = factory.Faker('user_name')
 
 
-class ServerFactory(factory.DjangoModelFactory):
+class ServerFactory(DjangoModelFactory):
 
     class Meta(object):
         model = Server
@@ -26,7 +29,7 @@ class ServerFactory(factory.DjangoModelFactory):
     url = factory.Faker('url', schemes=['https'])
 
 
-class RealmFactory(factory.DjangoModelFactory):
+class RealmFactory(DjangoModelFactory):
 
     class Meta(object):
         model = Realm
@@ -42,7 +45,7 @@ class RealmFactory(factory.DjangoModelFactory):
                                     'realm')
 
 
-class OpenIdConnectProfileFactory(factory.DjangoModelFactory):
+class OpenIdConnectProfileFactory(DjangoModelFactory):
 
     class Meta(object):
         model = OpenIdConnectProfile
@@ -52,7 +55,7 @@ class OpenIdConnectProfileFactory(factory.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
 
 
-class ClientFactory(factory.DjangoModelFactory):
+class ClientFactory(DjangoModelFactory):
 
     class Meta(object):
         model = Client

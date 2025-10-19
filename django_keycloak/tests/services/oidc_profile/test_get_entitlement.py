@@ -3,8 +3,7 @@ import mock
 from datetime import datetime
 
 from django.test import TestCase
-from keycloak.openid_connect import KeycloakOpenidConnect
-from keycloak.authz import KeycloakAuthz
+from keycloak import KeycloakOpenID
 
 from django_keycloak.factories import OpenIdConnectProfileFactory
 from django_keycloak.tests.mixins import MockTestCaseMixin
@@ -27,14 +26,16 @@ class ServicesKeycloakOpenIDProfileGetActiveAccessTokenTestCase(
             refresh_token='refresh-token'
         )
         self.oidc_profile.realm.client.openid_api_client = mock.MagicMock(
-            spec_set=KeycloakOpenidConnect)
-        self.oidc_profile.realm.client.authz_api_client = mock.MagicMock(
-            spec_set=KeycloakAuthz)
+            spec_set=KeycloakOpenID)
+        self.oidc_profile.realm.client.authz_api_client = mock.MagicMock()
         self.oidc_profile.realm.client.authz_api_client.entitlement\
             .return_value = {
                 'rpt': 'RPT_VALUE'
             }
-        self.oidc_profile.realm.certs = {'cert': 'cert-value'}
+        self.build_jwk_set_mock = self.setup_mock(
+            'django_keycloak.services.client.build_jwk_set'
+        )
+        self.build_jwk_set_mock.return_value = mock.sentinel.jwks
 
     def test(self):
         django_keycloak.services.oidc_profile.get_entitlement(
@@ -46,12 +47,6 @@ class ServicesKeycloakOpenIDProfileGetActiveAccessTokenTestCase(
             )
         self.oidc_profile.realm.client.openid_api_client.decode_token\
             .assert_called_once_with(
-                token='RPT_VALUE',
-                key=self.oidc_profile.realm.certs,
-                options={
-                    'verify_signature': True,
-                    'exp': True,
-                    'iat': True,
-                    'aud': True
-                }
+                'RPT_VALUE',
+                key=mock.sentinel.jwks,
             )

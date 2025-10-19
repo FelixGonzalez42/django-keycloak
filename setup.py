@@ -28,12 +28,13 @@ setup(
     },
     setup_requires=[
         'pytest-runner',
-        'python-keycloak-client-pkg==0.3.0',
+        'python-keycloak>=4.1,<5',
     ],
 
     install_requires=[
-        'python-keycloak-client-pkg==0.3.0',
-        'Django>=4.1',
+        'python-keycloak>=4.1,<5',
+        'httpx<0.28',
+        'Django>=4.2',
     ],
     tests_require=[
         'pytest-django',
