@@ -22,14 +22,15 @@ Django Keycloak integra la autenticación de **Keycloak** en proyectos Django me
 
 ## 🚀 Quickstart
 
-La forma más rápida de probar la librería es crear un proyecto Django nuevo y conectar un cliente confidencial de Keycloak. Estos pasos están verificados con Python 3.10+, Django 4.2+ y Keycloak 20 o superior.
+La forma más rápida de probar la librería es crear un proyecto Django nuevo y conectar un cliente confidencial de Keycloak. Estos pasos están verificados con Python 3.10+, Django 4.2+ y Keycloak 21 o superior.
 
 1. **Instala las dependencias**
 
    ```bash
    python -m venv .venv
    source .venv/bin/activate
-   pip install django django-keycloak
+   pip install django
+   pip install "git+https://github.com/FelixGonzalez42/django-keycloak.git"
    django-admin startproject demo
    cd demo
    ```
@@ -67,7 +68,11 @@ La forma más rápida de probar la librería es crear un proyecto Django nuevo y
    KEYCLOAK_PERMISSIONS_METHOD = "role"  # o "resource" si usas permisos UMA
    ```
 
-   - Si deseas autenticación tipo API sin sesión, añade `django_keycloak.middleware.KeycloakStatelessBearerAuthenticationMiddleware`.
+   - **`BaseKeycloakMiddleware`** adjunta el *realm* a cada petición y, cuando corresponde, expone la `session_state` de Keycloak en una cookie accesible para clientes front-end.
+   - **`RemoteUserAuthenticationMiddleware`** reutiliza la sesión almacenada en Keycloak (`REMOTE_SESSION_KEY`) para poblar `request.user` a partir del perfil OIDC asociado sin requerir un nuevo intercambio de tokens.
+   - **`KeycloakStatelessBearerAuthenticationMiddleware`** fuerza la presencia de un token Bearer válido en las rutas que no estén listadas en `KEYCLOAK_BEARER_AUTHENTICATION_EXEMPT_PATHS`, ideal para APIs REST.
+   - El backend `KeycloakAuthorizationCodeBackend` intercambia el *authorization code* por tokens y sincroniza el perfil OIDC con el usuario de Django.
+   - Otros backends disponibles: `KeycloakPasswordCredentialsBackend` (intercambia usuario/contraseña contra Keycloak usando *Resource Owner Password Credentials*) y `KeycloakIDTokenAuthorizationBackend` (valida un *ID Token* existente, útil en integraciones server-to-server).
    - Cambia `KEYCLOAK_OIDC_PROFILE_MODEL` a `"django_keycloak.RemoteUserOpenIdConnectProfile"` para evitar crear usuarios locales.
 
 3. **Aplica las migraciones y crea un superusuario** para entrar al admin de Django.

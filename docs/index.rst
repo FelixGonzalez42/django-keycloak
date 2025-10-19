@@ -38,7 +38,7 @@ Compatibilidad
 
 - Python 3.10 o superior.
 - Django 4.1 y 4.2.
-- Keycloak 20 o superior (probado con Keycloak.x y distribución Quarkus).
+- Keycloak 21 o superior (probado con Keycloak.x y distribución Quarkus).
 - Cliente ``python-keycloak`` >= 4.1.
 
 Consulta el archivo ``README.md`` en la raíz del repositorio para conocer el historial de cambios y enlaces adicionales.

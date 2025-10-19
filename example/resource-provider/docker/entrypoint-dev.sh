@@ -16,13 +16,20 @@ else
     python manage.py load_dynamic_fixtures myapp
 fi
 
-if grep -q Yarf /usr/local/lib/python3.7/site-packages/certifi/cacert.pem
-    then
-        echo "CA already added"
-    else
-        echo "Add CA to trusted pool"
-        echo "\n\n# Yarf" >> /usr/local/lib/python3.7/site-packages/certifi/cacert.pem
-        cat /usr/src/ca.pem >> /usr/local/lib/python3.7/site-packages/certifi/cacert.pem
+CERTIFI_PATH=$(python - <<'PY'
+import certifi
+print(certifi.where())
+PY
+)
+
+if [ -f "$CERTIFI_PATH" ] && ! grep -q "Yarf" "$CERTIFI_PATH"; then
+    echo "Add CA to trusted pool"
+    {
+        printf '\n\n# Yarf\n'
+        cat /usr/src/ca.pem
+    } >> "$CERTIFI_PATH"
+else
+    echo "CA already added"
 fi
 
 exec "$@"

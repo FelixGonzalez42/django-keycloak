@@ -1,127 +1,158 @@
-===============
+==============
 Django Keycloak
+==============
+
+Django Keycloak integrates `Keycloak <https://www.keycloak.org/>`_ authentication
+and authorization flows into Django projects. It provides middleware, reusable
+views, authentication backends and management commands to synchronize service
+accounts, UMA resources and roles.
+
+The repository includes a Spanish ``README.md`` with an extended tour of the
+features. The Sphinx documentation in ``docs/`` mirrors the same content and can
+be built locally with ``make -C docs html``.
+
+Key features
+============
+
+* Authorization Code login flow with optional automatic creation of local or
+  remote users.
+* Stateless bearer-token middleware to protect API endpoints.
+* UMA resource synchronization for permissions based on scopes.
+* Django Admin integration to register Keycloak servers, realms and clients.
+* Management commands such as ``keycloak_refresh_realm`` and
+  ``keycloak_sync_resources`` to keep metadata up to date.
+
+Quickstart
+==========
+
+The library targets Python 3.10+, Django 4.2+ and Keycloak 21+. The fastest way
+to try it is by bootstrapping a new Django project:
+
+1. Create and activate a virtual environment and install the dependencies::
+
+      python -m venv .venv
+      source .venv/bin/activate
+      pip install django
+      pip install "git+https://github.com/FelixGonzalez42/django-keycloak.git"
+
+2. Start a demo project and add the app configuration::
+
+      django-admin startproject demo
+      cd demo
+
+   ``demo/settings.py`` requires the Django Keycloak app, middleware and
+   authentication backend::
+
+      INSTALLED_APPS = [
+          # ...
+          "django.contrib.sessions",
+          "django.contrib.messages",
+          "django_keycloak",
+      ]
+
+      MIDDLEWARE = [
+          "django.middleware.security.SecurityMiddleware",
+          "django.contrib.sessions.middleware.SessionMiddleware",
+          "django.middleware.common.CommonMiddleware",
+          "django.middleware.csrf.CsrfViewMiddleware",
+          "django.contrib.auth.middleware.AuthenticationMiddleware",
+          "django.contrib.messages.middleware.MessageMiddleware",
+          "django.middleware.clickjacking.XFrameOptionsMiddleware",
+          "django_keycloak.middleware.BaseKeycloakMiddleware",
+          "django_keycloak.middleware.RemoteUserAuthenticationMiddleware",  # optional
+      ]
+
+      AUTHENTICATION_BACKENDS = [
+          "django_keycloak.auth.backends.KeycloakAuthorizationCodeBackend",
+          "django.contrib.auth.backends.ModelBackend",
+      ]
+
+      LOGIN_URL = "keycloak_login"
+      LOGIN_REDIRECT_URL = "home"
+      LOGOUT_REDIRECT_URL = "home"
+      KEYCLOAK_PERMISSIONS_METHOD = "role"  # or "resource" when using UMA scopes
+
+   For stateless APIs include
+   ``django_keycloak.middleware.KeycloakStatelessBearerAuthenticationMiddleware``
+   and configure ``KEYCLOAK_BEARER_AUTHENTICATION_EXEMPT_PATHS``.
+
+   Middleware and authentication helpers provided by the project:
+
+   * ``BaseKeycloakMiddleware`` attaches the current realm to every request
+     and, when the user is authenticated, exposes the Keycloak
+     ``session_state`` in a browser-readable cookie.
+   * ``RemoteUserAuthenticationMiddleware`` reads the remote session key stored
+     after login and rebuilds ``request.user`` from the linked OIDC profile
+     without performing a new token exchange.
+   * ``KeycloakStatelessBearerAuthenticationMiddleware`` enforces valid Bearer
+     tokens on non-exempt paths, which is useful for REST APIs.
+   * ``KeycloakAuthorizationCodeBackend`` exchanges the authorization code for
+     tokens and keeps the OpenID Connect profile in sync with the Django user.
+   * ``KeycloakPasswordCredentialsBackend`` performs Resource Owner Password
+     Credentials authentication directly against Keycloak.
+   * ``KeycloakIDTokenAuthorizationBackend`` validates an existing ID Token,
+     which helps when accepting logins from another trusted backend.
+
+3. Apply migrations and create a superuser::
+
+      python manage.py migrate
+      python manage.py createsuperuser
+
+4. Configure Keycloak:
+
+   * Create a realm (e.g. ``demo``).
+   * Register a confidential client with **Standard Flow** enabled and set the
+     redirect URI to ``http://127.0.0.1:8000/keycloak/login-complete`` and the
+     post-logout URI to ``http://127.0.0.1:8000/keycloak/logout``.
+   * Enable the service account and grant it the roles
+     ``realm-management:view-clients``, ``realm-management:manage-clients`` and
+     ``view-users`` (add ``manage-users`` only when creating users from Django).
+
+5. In Django Admin (``http://127.0.0.1:8000/admin/``) create a ``Server`` with
+   the public Keycloak URL (``http://127.0.0.1:8080`` by default), then add the
+   corresponding ``Realm`` and inline ``Client`` with the ``client_id`` and
+   secret. Trigger **Refresh OpenID Connect .well-known** and
+   **Refresh Certificates** or execute ``python manage.py keycloak_refresh_realm``.
+
+6. Finally run ``python manage.py runserver`` and visit
+   ``http://127.0.0.1:8000/keycloak/login`` to verify the login flow.
+
+Example project
 ===============
 
-.. image:: https://www.travis-ci.org/skamansam/django-keycloak.svg?branch=master
-   :target: https://www.travis-ci.org/skamansam/django-keycloak
-   :alt: Build Status
-.. image:: https://readthedocs.org/projects/django-keycloak/badge/?version=latest
-   :target: http://django-keycloak.readthedocs.io/en/latest/?badge=latest
-   :alt: Documentation Status
-.. image:: https://codecov.io/gh/skamansam/django-keycloak/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/skamansam/django-keycloak
-   :alt: codecov
-.. image:: https://api.codeclimate.com/v1/badges/eb19f47dc03dec40cea7/maintainability
-   :target: https://codeclimate.com/github/skamansam/django-keycloak/maintainability
-   :alt: Maintainability
+An end-to-end Docker Compose demo lives in ``example/``. It provisions Keycloak,
+Nginx, a sample Django site and a REST API. To run it:
 
-Django app to add Keycloak  support to your project.
+#. Ensure ``resource-provider.localhost.yarf.nl``,
+   ``resource-provider-api.localhost.yarf.nl`` and
+   ``identity.localhost.yarf.nl`` resolve to ``127.0.0.1`` on your machine
+   (e.g. via ``/etc/hosts``).
+#. From the repository root execute ``docker compose up --build``.
+#. Accept the bundled certificate authority found at
+   ``example/nginx/certs/ca.pem`` or bypass the certificate warning in the
+   browser.
 
-`Read documentation <http://django-keycloak.readthedocs.io/en/latest/>`_
-
-http://www.keycloak.org/
-
-An showcase/demo project is added in the `example folder <example/README.md>`_.
+The web application is available at
+``https://resource-provider.localhost.yarf.nl/`` (``testuser`` / ``password``),
+while Keycloak runs at ``https://identity.localhost.yarf.nl/`` (``admin`` /
+``admin``).
 
 Development
 ===========
 
-Install development environment:
+Install the project in editable mode with Poetry::
 
-.. code:: bash
+   poetry install
 
-  $ make install-python
+Run the test-suite with::
 
-------------
-Writing docs
-------------
+   poetry run pytest
 
-Documentation is written using Sphinx and maintained in the docs folder.
+Sphinx documentation can be built locally with::
 
-To make it easy to write docs Docker support is available.
+   make -C docs html
 
-First build the Docker container:
+To publish a package, build a distribution and upload it with Twine::
 
-.. code:: bash
-
-    $ docker build . -f DockerfileDocs -t django-keycloak-docs
-
-Run the container
-
-.. code:: bash
-
-    $ docker run -v `pwd`:/src --rm -t -i -p 8050:8050 django-keycloak-docs
-
-Go in the browser to http://localhost:8050 and view the documentation which get
-refreshed and updated on every update in the documentation source.
-
---------------
-Create release
---------------
-
-.. code:: bash
-
-    $ git checkout master
-    $ git pull
-    $ bumpversion release
-    $ make deploy-pypi
-    $ bumpversion --no-tag patch
-    $ git push origin master --tags
-
-Release Notes
-=============
-
-**unreleased**
-* Changed name for the project from django42-keycloak to django-keycloak. Needed to prevent compatibility issues with existing code.
-
-**v0.1.2**
-
-**v0.2.5**
-
-* Add registeration redirect view
-
-
-**v0.2.4**
-
-* Fixed refresh token expiration date exists
-
-**v0.2.3**
-
-* Fixed ENTTITLMENT issue by commenting the code temporarily, till fully fixed
-* https://issues.redhat.com/browse/KEYCLOAK-8353
-
-**v0.2.2**
-
-* Fixed issue by adding migration file to repo
-
-**v0.2.1**
-
-* Added a feature to use redirect url after successful login using settings.LOGIN_REDIRECT_URL
-
-**v0.2.0**
-
-* Added support for Python 3.9 & Django 4.1
-* Fixed integration issues with keycloak > v4
-    * https://github.com/Peter-Slump/django-keycloak/issues/57
-    * https://github.com/Peter-Slump/django-keycloak/issues/18
-    * https://github.com/oauth2-proxy/oauth2-proxy/issues/1448
-* Updated documentation.
-
-**v0.1.2-dev**
-
-**v0.1.1**
-
-* Added support for remote user. Handling identities without registering a User
-  model. (thanks to `bossan <https://github.com/bossan>`_)
-* Addes support for permissions using resources and scopes.
-  (thanks to `bossan <https://github.com/bossan>`_)
-* Added example project.
-* Updated documentation.
-
-**v0.1.0**
-
-* Correctly extract email field name on UserModel (thanks to `swist <https://github.com/swist>`_)
-* Add support for Oauth2 Token Exchange to exchange tokens with remote clients.
-  Handy when using multiple applications with different clients which have to
-  communicate with each other.
-* Support for session iframe
+   poetry build
+   twine upload dist/*

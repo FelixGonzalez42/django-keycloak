@@ -14,14 +14,14 @@ one.
 
 .. code:: bash
 
-    $ python manage.py keycloak_add_user --realm <insert realm name> --username <insert user name>
+    $ python manage.py keycloak_add_user --realm <insert realm name> --user <insert user name>
 
 .. note:: In theory it would be possible to synchronize (hashed) passwords to
     Keycloak however Keycloak uses a 512 bit hash for pbkdf2_sha256 hashed
     passwords, Django generates a 256 bits hash. In that way passwords will not
     work when they are copied to Keycloak. The project includes a sha512 hasher
     (:class:`django_keycloak.hashers.PBKDF2SHA512PasswordHasher`) which you can
-    configure to hash passwords in a Keycloak-complient way.
+    configure to hash passwords in a Keycloak-compliant way.
 
     .. code:: python
 
@@ -32,4 +32,3 @@ one.
 
 
 .. _synchronize_permissions:
-
