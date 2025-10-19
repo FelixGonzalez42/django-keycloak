@@ -33,7 +33,7 @@ to try it is by bootstrapping a new Django project:
       python -m venv .venv
       source .venv/bin/activate
       pip install django
-      pip install "git+https://github.com/Tehnari/django-keycloak.git"
+      pip install "git+https://github.com/FelixGonzalez42/django-keycloak.git"
 
 2. Start a demo project and add the app configuration::
 
@@ -75,6 +75,23 @@ to try it is by bootstrapping a new Django project:
    For stateless APIs include
    ``django_keycloak.middleware.KeycloakStatelessBearerAuthenticationMiddleware``
    and configure ``KEYCLOAK_BEARER_AUTHENTICATION_EXEMPT_PATHS``.
+
+   Middleware and authentication helpers provided by the project:
+
+   * ``BaseKeycloakMiddleware`` attaches the current realm to every request
+     and, when the user is authenticated, exposes the Keycloak
+     ``session_state`` in a browser-readable cookie.
+   * ``RemoteUserAuthenticationMiddleware`` reads the remote session key stored
+     after login and rebuilds ``request.user`` from the linked OIDC profile
+     without performing a new token exchange.
+   * ``KeycloakStatelessBearerAuthenticationMiddleware`` enforces valid Bearer
+     tokens on non-exempt paths, which is useful for REST APIs.
+   * ``KeycloakAuthorizationCodeBackend`` exchanges the authorization code for
+     tokens and keeps the OpenID Connect profile in sync with the Django user.
+   * ``KeycloakPasswordCredentialsBackend`` performs Resource Owner Password
+     Credentials authentication directly against Keycloak.
+   * ``KeycloakIDTokenAuthorizationBackend`` validates an existing ID Token,
+     which helps when accepting logins from another trusted backend.
 
 3. Apply migrations and create a superuser::
 

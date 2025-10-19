@@ -26,7 +26,7 @@ Instalación de Django Keycloak
    .. code-block:: bash
 
       pip install django
-      pip install "git+https://github.com/Tehnari/django-keycloak.git"
+      pip install "git+https://github.com/FelixGonzalez42/django-keycloak.git"
 
 3. Genera un proyecto de ejemplo y entra en él:
 
@@ -93,6 +93,19 @@ Configuración de Django
 
    - Para APIs sin sesión añade ``django_keycloak.middleware.KeycloakStatelessBearerAuthenticationMiddleware``.
    - Si prefieres usuarios 100 % remotos ajusta ``KEYCLOAK_OIDC_PROFILE_MODEL = "django_keycloak.RemoteUserOpenIdConnectProfile"``.
+   - ``BaseKeycloakMiddleware`` añade el ``realm`` a la petición y sincroniza la
+     cookie ``session_state`` cuando exista un perfil OIDC activo.
+   - ``RemoteUserAuthenticationMiddleware`` recupera al usuario remoto de la
+     sesión de Keycloak y vuelve a poblar ``request.user`` a partir del perfil
+     OIDC sin ejecutar un nuevo intercambio de tokens.
+   - ``KeycloakStatelessBearerAuthenticationMiddleware`` valida tokens Bearer en
+     cada request que no esté en ``KEYCLOAK_BEARER_AUTHENTICATION_EXEMPT_PATHS``.
+   - ``KeycloakAuthorizationCodeBackend`` intercambia el *authorization code*
+     por tokens y guarda el perfil OIDC asociado al usuario de Django.
+   - ``KeycloakPasswordCredentialsBackend`` permite autenticar mediante usuario
+     y contraseña directamente contra Keycloak.
+   - ``KeycloakIDTokenAuthorizationBackend`` acepta un ID Token ya emitido por
+     Keycloak, útil para integraciones server-to-server.
 
 2. Aplica migraciones y crea un superusuario para ingresar al admin:
 
