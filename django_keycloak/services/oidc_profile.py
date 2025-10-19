@@ -169,7 +169,7 @@ def update_or_create_from_code(code, client, redirect_uri):
     token_response = client.openid_api_client.token(
         code=code,
         redirect_uri=redirect_uri,
-        grant_type=["authorization_code"],
+        grant_type="authorization_code",
     )
 
     return _update_or_create(client=client, token_response=token_response,
@@ -195,7 +195,7 @@ def update_or_create_from_password_credentials(username, password, client):
     token_response = client.openid_api_client.token(
         username=username,
         password=password,
-        grant_type=["password"],
+        grant_type="password",
     )
 
     return _update_or_create(client=client, token_response=token_response,
@@ -256,15 +256,16 @@ def update_tokens(token_model, token_response, initiate_time):
     """
     expires_before = initiate_time + timedelta(
         seconds=token_response['expires_in'])
-    refresh_expires_before = initiate_time + timedelta(
-        seconds=token_response['refresh_expires_in'])
+    refresh_expires_in = token_response.get('refresh_expires_in')
+    refresh_expires_before = (
+        initiate_time + timedelta(seconds=refresh_expires_in)
+        if refresh_expires_in is not None
+        else None
+    )
 
     token_model.access_token = token_response['access_token']
     token_model.expires_before = expires_before
-    try:
-        token_model.refresh_token = token_response['refresh_token']
-    except:
-        token_model.refresh_token = None
+    token_model.refresh_token = token_response.get('refresh_token')
     token_model.refresh_expires_before = refresh_expires_before
 
     token_model.save(update_fields=['access_token',
