@@ -7,35 +7,29 @@ Initial setup
 Server configuration
 ====================
 
-First you have to add your Keycloak server. You can do this in the Django Admin.
+Registra tu servidor de Keycloak desde el admin de Django en ``Keycloak › Servers``.
 
 .. image:: /add-server.png
 
-.. note:: When your application access the Keycloak server using a different url
-          than the public one you can configure this URL as "internal url". Django
-          Keycloak will use that url for all direct communication but uses the standard
-          server url to redirect users for authentication.
+.. note:: Si tu aplicación accede a Keycloak mediante una URL distinta a la pública (por ejemplo, servicios Docker detrás de un proxy), indica esa URL en ``internal_url``. Django Keycloak usará ``internal_url`` para las llamadas directas pero seguirá redirigiendo a los usuarios a la URL pública.
 
 Realm configuration
 ===================
 
-After you have created a
-`REALM <http://www.keycloak.org/docs/3.4/server_admin/index.html#_create-realm>`_
-and `Client <http://www.keycloak.org/docs/3.4/server_admin/index.html#_clients>`_
-in Keycloak you can add these in the Django admin.
+Después de crear un `Realm <https://www.keycloak.org/docs/latest/server_admin/#creating-and-configuring-a-realm>`_ y un `cliente confidencial <https://www.keycloak.org/docs/latest/server_admin/#client-registration>`_ en Keycloak, añádelos en el admin de Django.
 
-.. note:: Django-Keycloak supports multiple realms. However when you configure
-          multiple realms you have to write your own middleware which selects
-          the correct realm based on the request. The default middleware always
-          selects the first realm available in the database.
+.. note:: Django Keycloak soporta múltiples realms. Si configuras más de uno necesitarás escribir tu propio middleware que asigne ``request.realm`` según el dominio o la cabecera. El middleware por defecto toma siempre el primer realm disponible en la base de datos.
 
 .. image:: /add-realm.png
 
-After you have added the realm please make sure to run te following actions:
+Acciones recomendadas
+=====================
 
-    * :ref:`refresh_openid_connect_well_known`
-    * :ref:`refresh_certificates`
-    * :ref:`synchronize_permissions` (when using the permission system)
+Tras registrar el realm ejecuta las siguientes acciones desde el listado de realms o mediante los comandos equivalentes:
+
+* :ref:`refresh_openid_connect_well_known` — cachea el documento ``.well-known`` (:command:`python manage.py keycloak_refresh_realm`).
+* :ref:`refresh_certificates` — actualiza los certificados públicos (:command:`python manage.py keycloak_refresh_realm`).
+* :ref:`synchronize_permissions` — necesario cuando utilizas el sistema de permisos basado en scopes (:command:`python manage.py keycloak_sync_resources`).
 
 Tools
 =====
@@ -46,12 +40,7 @@ Tools
 Refresh OpenID Connect .well-known
 ----------------------------------
 
-In the Django Admin you can apply the action "Refresh OpenID Connect
-.well-known" for a realm. This retrieves the
-`.well-known <http://www.keycloak.org/docs/3.4/securing_apps/index.html#endpoints>`_
-content for the OpenID Connect functionality and caches this in the database. In
-this way it's not required to fetch this file before each request regarding
-OpenID Connect to the Keycloak server.
+En el admin aplica la acción "Refresh OpenID Connect .well-known" para un realm. Esto descarga el documento `OpenID Provider Configuration <https://www.rfc-editor.org/rfc/rfc8414>`_ y lo almacena en la base de datos, evitando llamadas repetidas en cada autenticación.
 
 .. image:: /refresh_well_known.png
 
@@ -61,8 +50,7 @@ OpenID Connect to the Keycloak server.
 Refresh Certificates
 --------------------
 
-This refreshes the cached certificates from the Keycloak server. These
-certificates are used for valiation of the JWT's.
+Actualiza los certificados JWKS del realm. Estos certificados se usan para validar los tokens emitidos por Keycloak.
 
 .. image:: /refresh_certificates.png
 
@@ -70,8 +58,6 @@ certificates are used for valiation of the JWT's.
 Clear client tokens
 -------------------
 
-While debugging client service account permissions it's sometimes required to
-refresh te session in order to fetch the new permissions. This can be done with
-this action in the Django admin.
+Mientras depuras permisos del *service account* puede ser necesario limpiar la sesión almacenada. Esta acción borra los tokens de la cuenta de servicio y fuerza a Django Keycloak a solicitar uno nuevo.
 
 .. image:: /clear_client_tokens.png
