@@ -52,7 +52,7 @@ class ServicesKeycloakOpenIDProfileUpdateOrCreateTestCase(MockTestCaseMixin,
         self.client.openid_api_client.token.assert_called_once_with(
             code='some-code',
             redirect_uri='https://redirect',
-            grant_type=['authorization_code']
+            grant_type='authorization_code'
         )
         self.client.openid_api_client.decode_token.assert_called_once_with(
             'id-token',
@@ -104,7 +104,7 @@ class ServicesKeycloakOpenIDProfileUpdateOrCreateTestCase(MockTestCaseMixin,
         self.client.openid_api_client.token.assert_called_once_with(
             code='some-code',
             redirect_uri='https://redirect',
-            grant_type=['authorization_code']
+            grant_type='authorization_code'
         )
         self.client.openid_api_client.decode_token.assert_called_once_with(
             'id-token',
@@ -129,3 +129,17 @@ class ServicesKeycloakOpenIDProfileUpdateOrCreateTestCase(MockTestCaseMixin,
         self.assertEqual(user.username, 'some-sub')
         self.assertEqual(user.first_name, 'Some given name')
         self.assertEqual(user.last_name, 'Some family name')
+
+    @freeze_time('2018-03-01 00:00:00')
+    def test_password_grant_uses_string_identifier(self):
+        django_keycloak.services.oidc_profile.update_or_create_from_password_credentials(
+            username='jane',
+            password='doe',
+            client=self.client,
+        )
+
+        self.client.openid_api_client.token.assert_called_once_with(
+            username='jane',
+            password='doe',
+            grant_type='password'
+        )
