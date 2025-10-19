@@ -4,28 +4,50 @@
 Testing with the Example project
 ================================
 
-The quickest way to experiment with this project is by running the example
-project. This project is setup using Docker compose.
+The repository ships with a Docker Compose showcase under ``example/``. It
+starts Keycloak, a PostgreSQL database, an Nginx reverse proxy, a Django web app
+and a separate API service so you can exercise both browser and bearer-token
+flows.
 
-Given you have installed Docker and Docker compose run:
+Prerequisites
+=============
+
+* Docker and the Compose plugin installed.
+* Hostnames ``resource-provider.localhost.yarf.nl``,
+  ``resource-provider-api.localhost.yarf.nl`` and
+  ``identity.localhost.yarf.nl`` resolving to ``127.0.0.1`` (add them to
+  ``/etc/hosts`` on Linux/macOS or ``C:\Windows\System32\drivers\etc\hosts`` on
+  Windows).
+
+Running the stack
+=================
 
 .. code-block:: bash
 
-    $ cd example
-    $ docker-compose up
+    docker compose up --build
 
-The project exists of a resource provider which mimics a web app and a resource
-provider which is only accessible by an API. Next to it is a Keycloak instance
-available which is backed by a Postgres database.
+Compose pulls the latest Keycloak image, imports the realms found in
+``example/keycloak/export`` and builds the Django services from source. The
+self-signed certificate authority is stored in ``example/nginx/certs/ca.pem``;
+import it into your browser or accept the warning page during testing.
 
-Once you have the containers running you can access it by navigating to:
-https://resource-provider.localhost.yarf.nl/ you can login with
-username: `testuser` and password: `password`. The admin is
-accessible at /admin with username: `admin` and password: `password`.
+Services
+========
 
-The Keycloak instance is available at:  https://identity.localhost.yarf.nl/
-the username of the admin user is `admin` and the password is `password`.
+* Web app: https://resource-provider.localhost.yarf.nl/
+* API: https://resource-provider-api.localhost.yarf.nl/
+* Django admin (web app): https://resource-provider.localhost.yarf.nl/admin/
+* Django admin (API): https://resource-provider-api.localhost.yarf.nl/admin/
+* Keycloak: https://identity.localhost.yarf.nl/
 
-The API is available at: https://resource-provider-api.localhost.yarf.nl/
-You probably don't actually use this server or only for the admin. The admin is
-accessible at /admin with username: `admin` and password: `password`.
+Default credentials
+===================
+
+* Keycloak administrator: ``admin`` / ``admin``
+* Web app Django admin: ``admin`` / ``password``
+* API Django admin: ``admin`` / ``password``
+* Demo Keycloak user: ``testuser`` / ``password``
+
+The Keycloak service account already owns the roles required to run
+``keycloak_sync_resources`` and the UMA synchronization examples described in the
+rest of the documentation.
