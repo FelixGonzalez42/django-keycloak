@@ -5,7 +5,7 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from freezegun import freeze_time
-from keycloak.openid_connect import KeycloakOpenidConnect
+from keycloak import KeycloakOpenID
 
 from django_keycloak.factories import ClientFactory
 from django_keycloak.models import OpenIdConnectProfile
@@ -23,16 +23,13 @@ class ServicesKeycloakOpenIDProfileUpdateOrCreateTestCase(MockTestCaseMixin,
             realm___well_known_oidc='{"issuer": "https://issuer"}'
         )
         self.client.openid_api_client = mock.MagicMock(
-            spec_set=KeycloakOpenidConnect)
-        self.client.openid_api_client.authorization_code.return_value = {
+            spec_set=KeycloakOpenID)
+        self.client.openid_api_client.token.return_value = {
             'id_token': 'id-token',
             'expires_in': 600,
             'refresh_expires_in': 3600,
             'access_token': 'access-token',
             'refresh_token': 'refresh-token'
-        }
-        self.client.openid_api_client.well_known = {
-            'id_token_signing_alg_values_supported': ['signing-alg']
         }
         self.client.openid_api_client.decode_token.return_value = {
             'sub': 'some-sub',
@@ -40,6 +37,10 @@ class ServicesKeycloakOpenIDProfileUpdateOrCreateTestCase(MockTestCaseMixin,
             'given_name': 'Some given name',
             'family_name': 'Some family name'
         }
+        self.build_jwk_set_mock = self.setup_mock(
+            'django_keycloak.services.client.build_jwk_set'
+        )
+        self.build_jwk_set_mock.return_value = mock.sentinel.jwks
 
     @freeze_time('2018-03-01 00:00:00')
     def test_create(self):
@@ -48,14 +49,16 @@ class ServicesKeycloakOpenIDProfileUpdateOrCreateTestCase(MockTestCaseMixin,
             code='some-code',
             redirect_uri='https://redirect'
         )
-        self.client.openid_api_client.authorization_code\
-            .assert_called_once_with(code='some-code',
-                                     redirect_uri='https://redirect')
+        self.client.openid_api_client.token.assert_called_once_with(
+            code='some-code',
+            redirect_uri='https://redirect',
+            grant_type=['authorization_code']
+        )
         self.client.openid_api_client.decode_token.assert_called_once_with(
-            token='id-token',
-            key=dict(),
-            algorithms=['signing-alg'],
-            issuer='https://issuer'
+            'id-token',
+            key=mock.sentinel.jwks,
+            check_claims={'iss': 'https://issuer', 'aud': self.client.client_id},
+            access_token='access-token'
         )
 
         profile = OpenIdConnectProfile.objects.get(sub='some-sub')
@@ -98,14 +101,16 @@ class ServicesKeycloakOpenIDProfileUpdateOrCreateTestCase(MockTestCaseMixin,
             code='some-code',
             redirect_uri='https://redirect'
         )
-        self.client.openid_api_client.authorization_code\
-            .assert_called_once_with(code='some-code',
-                                     redirect_uri='https://redirect')
+        self.client.openid_api_client.token.assert_called_once_with(
+            code='some-code',
+            redirect_uri='https://redirect',
+            grant_type=['authorization_code']
+        )
         self.client.openid_api_client.decode_token.assert_called_once_with(
-            token='id-token',
-            key=dict(),
-            algorithms=['signing-alg'],
-            issuer='https://issuer'
+            'id-token',
+            key=mock.sentinel.jwks,
+            check_claims={'iss': 'https://issuer', 'aud': self.client.client_id},
+            access_token='access-token'
         )
 
         profile.refresh_from_db()

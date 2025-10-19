@@ -3,7 +3,7 @@ import mock
 from datetime import datetime
 
 from django.test import TestCase
-from keycloak.openid_connect import KeycloakOpenidConnect
+from keycloak import KeycloakOpenID
 
 from django_keycloak.factories import ClientFactory, \
     OpenIdConnectProfileFactory, UserFactory
@@ -21,16 +21,17 @@ class ServicesOpenIDProfileGetOrCreateFromIdTokenTestCase(
             realm___well_known_oidc='{"issuer": "https://issuer"}'
         )
         self.client.openid_api_client = mock.MagicMock(
-            spec_set=KeycloakOpenidConnect)
-        self.client.openid_api_client.well_known = {
-            'id_token_signing_alg_values_supported': ['signing-alg']
-        }
+            spec_set=KeycloakOpenID)
         self.client.openid_api_client.decode_token.return_value = {
             'sub': 'some-sub',
             'email': 'test@example.com',
             'given_name': 'Some given name',
             'family_name': 'Some family name'
         }
+        self.build_jwk_set_mock = self.setup_mock(
+            'django_keycloak.services.client.build_jwk_set'
+        )
+        self.build_jwk_set_mock.return_value = mock.sentinel.jwks
 
     def test_create_with_new_user_new_profile(self):
         """
@@ -45,10 +46,9 @@ class ServicesOpenIDProfileGetOrCreateFromIdTokenTestCase(
             )
 
         self.client.openid_api_client.decode_token.assert_called_with(
-            token='some-id-token',
-            key=dict(),
-            algorithms=['signing-alg'],
-            issuer='https://issuer'
+            'some-id-token',
+            key=mock.sentinel.jwks,
+            check_claims={'iss': 'https://issuer', 'aud': self.client.client_id}
         )
 
         self.assertEqual(profile.sub, 'some-sub')
@@ -77,10 +77,9 @@ class ServicesOpenIDProfileGetOrCreateFromIdTokenTestCase(
             )
 
         self.client.openid_api_client.decode_token.assert_called_with(
-            token='some-id-token',
-            key=dict(),
-            algorithms=['signing-alg'],
-            issuer='https://issuer'
+            'some-id-token',
+            key=mock.sentinel.jwks,
+            check_claims={'iss': 'https://issuer', 'aud': self.client.client_id}
         )
 
         self.assertEqual(profile.sub, 'some-sub')
@@ -106,10 +105,9 @@ class ServicesOpenIDProfileGetOrCreateFromIdTokenTestCase(
             )
 
         self.client.openid_api_client.decode_token.assert_called_with(
-            token='some-id-token',
-            key=dict(),
-            algorithms=['signing-alg'],
-            issuer='https://issuer'
+            'some-id-token',
+            key=mock.sentinel.jwks,
+            check_claims={'iss': 'https://issuer', 'aud': self.client.client_id}
         )
 
         self.assertEqual(profile.sub, 'some-sub')
@@ -143,10 +141,9 @@ class ServicesOpenIDProfileGetOrCreateFromIdTokenTestCase(
             )
 
         self.client.openid_api_client.decode_token.assert_called_with(
-            token='some-id-token',
-            key=dict(),
-            algorithms=['signing-alg'],
-            issuer='https://issuer'
+            'some-id-token',
+            key=mock.sentinel.jwks,
+            check_claims={'iss': 'https://issuer', 'aud': self.client.client_id}
         )
 
         self.assertEqual(profile.pk, existing_profile.pk)

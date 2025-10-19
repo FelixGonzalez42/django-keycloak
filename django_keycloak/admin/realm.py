@@ -1,5 +1,4 @@
 from django.contrib import admin, messages
-from keycloak.exceptions import KeycloakClientError
 from requests.exceptions import HTTPError
 
 from django_keycloak.models import (
@@ -89,8 +88,8 @@ def synchronize_resources(modeladmin, request, queryset):
         try:
             django_keycloak.services.uma.synchronize_client(
                 client=realm.client)
-        except KeycloakClientError as e:
-            if e.original_exc.response.status_code == 400:
+        except HTTPError as e:
+            if e.response is not None and e.response.status_code == 400:
                 modeladmin.message_user(
                     request=request,
                     message='Forbidden for {}. Is "Remote Resource '

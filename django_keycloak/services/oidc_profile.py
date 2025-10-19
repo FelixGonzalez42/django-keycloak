@@ -63,12 +63,15 @@ def get_or_create_from_id_token(client, id_token):
     """
     issuer = django_keycloak.services.realm.get_issuer(client.realm)
 
+    from django_keycloak.services.client import build_jwk_set
+
+    jwks = build_jwk_set(client.realm)
+    check_claims = {"iss": issuer, "aud": client.client_id}
+
     id_token_object = client.openid_api_client.decode_token(
-        token=id_token,
-        key=client.realm.certs,
-        algorithms=client.openid_api_client.well_known[
-            'id_token_signing_alg_values_supported'],
-        issuer=issuer
+        id_token,
+        key=jwks,
+        check_claims=check_claims,
     )
 
     return update_or_create_user_and_oidc_profile(
@@ -102,8 +105,9 @@ def update_or_create_user_and_oidc_profile(client, id_token_object):
     with transaction.atomic():
         UserModel = get_user_model()
         email_field_name = UserModel.get_email_field_name()
+        username = id_token_object.get('preferred_username', id_token_object['sub'])
         user, _ = UserModel.objects.update_or_create(
-            username=id_token_object['preferred_username'], # modified to map with the username
+            username=username,
             defaults={
                 email_field_name: id_token_object.get('email', ''),
                 'first_name': id_token_object.get('given_name', ''),
@@ -162,8 +166,11 @@ def update_or_create_from_code(code, client, redirect_uri):
     # Define "initiate_time" before getting the access token to calculate
     # before which time it expires.
     initiate_time = timezone.now()
-    token_response = client.openid_api_client.authorization_code(
-        code=code, redirect_uri=redirect_uri)
+    token_response = client.openid_api_client.token(
+        code=code,
+        redirect_uri=redirect_uri,
+        grant_type=["authorization_code"],
+    )
 
     return _update_or_create(client=client, token_response=token_response,
                               initiate_time=initiate_time)
@@ -185,8 +192,11 @@ def update_or_create_from_password_credentials(username, password, client):
     # Define "initiate_time" before getting the access token to calculate
     # before which time it expires.
     initiate_time = timezone.now()
-    token_response = client.openid_api_client.password_credentials(
-        username=username, password=password)
+    token_response = client.openid_api_client.token(
+        username=username,
+        password=password,
+        grant_type=["password"],
+    )
 
     return _update_or_create(client=client, token_response=token_response,
                              initiate_time=initiate_time)
@@ -214,13 +224,16 @@ def _update_or_create(client, token_response, initiate_time):
     token_response_key = 'id_token' if 'id_token' in token_response \
         else 'access_token'
 
+    from django_keycloak.services.client import build_jwk_set
+
+    jwks = build_jwk_set(client.realm)
+    check_claims = {"iss": issuer, "aud": client.client_id}
+
     token_object = client.openid_api_client.decode_token(
-        token=token_response[token_response_key],
-        key=client.realm.certs,
-        algorithms=client.openid_api_client.well_known[
-            'id_token_signing_alg_values_supported'],
-        issuer=issuer,
-        access_token=token_response["access_token"], # modified to fix the issue https://github.com/Peter-Slump/django-keycloak/issues/57
+        token_response[token_response_key],
+        key=jwks,
+        check_claims=check_claims,
+        access_token=token_response["access_token"],
     )
 
     oidc_profile = update_or_create_user_and_oidc_profile(
@@ -300,17 +313,16 @@ def get_entitlement(oidc_profile):
     access_token = get_active_access_token(oidc_profile=oidc_profile)
 
     rpt = oidc_profile.realm.client.authz_api_client.entitlement(
-        token=access_token)
+        token=access_token
+    )
 
+    from django_keycloak.services.client import build_jwk_set
+
+    jwks = build_jwk_set(oidc_profile.realm)
     rpt_decoded = oidc_profile.realm.client.openid_api_client.decode_token(
-        token=rpt['rpt'],
-        key=oidc_profile.realm.certs,
-        options={
-            'verify_signature': True,
-            'exp': True,
-            'iat': True,
-            'aud': True
-        })
+        rpt["rpt"],
+        key=jwks,
+    )
     return rpt_decoded
 
 
@@ -324,9 +336,11 @@ def get_decoded_jwt(oidc_profile):
 
     active_access_token = get_active_access_token(oidc_profile=oidc_profile)
 
+    from django_keycloak.services.client import build_jwk_set
+
+    jwks = build_jwk_set(client.realm)
     return client.openid_api_client.decode_token(
-        token=active_access_token,
-        key=client.realm.certs,
-        algorithms=client.openid_api_client.well_known[
-            'id_token_signing_alg_values_supported']
+        active_access_token,
+        key=jwks,
+        check_claims={"aud": client.client_id},
     )

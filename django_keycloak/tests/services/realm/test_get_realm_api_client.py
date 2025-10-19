@@ -1,13 +1,11 @@
 from django.test import TestCase
 
 from django_keycloak.factories import ServerFactory, RealmFactory
-from django_keycloak.tests.mixins import MockTestCaseMixin
 
 import django_keycloak.services.realm
 
 
-class ServicesRealmGetRealmApiClientTestCase(
-        MockTestCaseMixin, TestCase):
+class ServicesRealmHelpersTestCase(TestCase):
 
     def setUp(self):
         self.server = ServerFactory(
@@ -20,30 +18,28 @@ class ServicesRealmGetRealmApiClientTestCase(
             name='test-realm'
         )
 
-    def test_get_realm_api_client(self):
-        """
-        Case: a realm api client is requested for a realm on a server without
-        internal_url.
-        Expected: a KeycloakRealm client is returned with settings based on the
-        provided realm. The server_url in the client is the provided url.
-        """
-        client = django_keycloak.services.realm.\
-            get_realm_api_client(realm=self.realm)
+    def test_get_realm_server_config(self):
+        server_url, headers = django_keycloak.services.realm.\
+            get_realm_server_config(realm=self.realm)
 
-        self.assertEqual(client.server_url, self.server.url)
-        self.assertEqual(client.realm_name, self.realm.name)
+        self.assertEqual(server_url, self.server.url)
+        self.assertEqual(headers, {})
 
-    def test_get_realm_api_client_with_internal_url(self):
-        """
-        Case: a realm api client is requested for a realm on a server with
-        internal_url.
-        Expected: a KeycloakRealm client is returned with settings based on the
-        provided realm. The server_url in the client is the provided url.
-        """
+    def test_get_realm_server_config_with_internal_url(self):
         self.server.internal_url = 'https://some-internal-url'
 
-        client = django_keycloak.services.realm.\
-            get_realm_api_client(realm=self.realm)
+        server_url, headers = django_keycloak.services.realm.\
+            get_realm_server_config(realm=self.realm)
 
-        self.assertEqual(client.server_url, self.server.internal_url)
-        self.assertEqual(client.realm_name, self.realm.name)
+        self.assertEqual(server_url, self.server.internal_url)
+        self.assertEqual(headers['Host'], 'some-url')
+        self.assertEqual(headers['X-Forwarded-Proto'], 'https')
+
+    def test_build_endpoint(self):
+        endpoint = django_keycloak.services.realm.build_endpoint(
+            self.realm, '/protocol/openid-connect/token'
+        )
+        self.assertEqual(
+            endpoint,
+            'https://some-url/protocol/openid-connect/token'
+        )

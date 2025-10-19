@@ -18,8 +18,8 @@ class ServicesRealmRefreshWellKnownOIDCTestCase(
         )
 
         keycloak_oidc_mock = mock.MagicMock()
-        keycloak_oidc_mock.well_known.contents = {'key': 'value'}
-        self.setup_mock('keycloak.realm.KeycloakRealm.open_id_connect',
+        keycloak_oidc_mock.well_known.return_value = {'key': 'value'}
+        self.setup_mock('django_keycloak.services.realm.KeycloakOpenID',
                         return_value=keycloak_oidc_mock)
 
     def test_refresh_well_known_oidc(self):

@@ -8,6 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,19 +58,6 @@ class Realm(models.Model):
     def well_known_oidc(self, content):
         self._well_known_oidc = json.dumps(content)
 
-    _keycloak_realm = None
-
-    @cached_property
-    def realm_api_client(self):
-        """
-        :rtype: keycloak.realm.Realm
-        """
-        if self._keycloak_realm is None:
-            import django_keycloak.services.realm
-            self._keycloak_realm = django_keycloak.services.realm.\
-                get_realm_api_client(realm=self)
-        return self._keycloak_realm
-
     def __str__(self):
         return self.name
 
@@ -99,7 +87,7 @@ class Client(models.Model):
     @cached_property
     def openid_api_client(self):
         """
-        :rtype: keycloak.openid_connect.KeycloakOpenidConnect
+        :rtype: keycloak.keycloak_openid.KeycloakOpenID
         """
         import django_keycloak.services.client
         return django_keycloak.services.client.get_openid_client(client=self)
@@ -107,7 +95,7 @@ class Client(models.Model):
     @cached_property
     def authz_api_client(self):
         """
-        :rtype: keycloak.authz.KeycloakAuthz
+        :rtype: django_keycloak.services.client.AuthzAdapter
         """
         import django_keycloak.services.client
         return django_keycloak.services.client.get_authz_api_client(
@@ -116,7 +104,7 @@ class Client(models.Model):
     @cached_property
     def uma1_api_client(self):
         """
-        :rtype: keycloak.uma1.KeycloakUMA1
+        :rtype: django_keycloak.services.client.UMAResourceClient
         """
         import django_keycloak.services.client
         return django_keycloak.services.client.get_uma1_client(client=self)
@@ -178,11 +166,13 @@ class OpenIdConnectProfileAbstract(TokenModelAbstract):
         if not self.is_active:
             return None
         client = self.realm.client
+        from django_keycloak.services.client import build_jwk_set
+
+        jwks = build_jwk_set(client.realm)
         return client.openid_api_client.decode_token(
-            token=self.access_token,
-            key=client.realm.certs,
-            algorithms=client.openid_api_client.well_known[
-                'id_token_signing_alg_values_supported'],
+            self.access_token,
+            key=jwks,
+            check_claims={"aud": client.client_id},
         )
 
 
