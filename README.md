@@ -105,6 +105,53 @@ La forma más rápida de probar la librería es crear un proyecto Django nuevo y
 
 ---
 
+## 🧪 Ejemplo completo con Docker Compose
+
+Si prefieres probar la integración sin crear un proyecto desde cero, el repositorio incluye un entorno reproducible en `example/` basado en Docker Compose. Levanta un Keycloak totalmente configurado, dos aplicaciones Django y un Nginx que termina TLS para los dominios de demo.
+
+1. **Requisitos previos**
+
+   - Docker y el plugin de Compose instalados.
+   - Entradas locales para los dominios de prueba. Añade estas líneas a tu archivo `hosts` (por ejemplo `/etc/hosts`):
+
+     ```text
+     127.0.0.1 resource-provider.localhost.yarf.nl
+     127.0.0.1 resource-provider-api.localhost.yarf.nl
+     127.0.0.1 identity.localhost.yarf.nl
+     ```
+
+2. **Arranca los servicios** desde la raíz del repositorio:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   La primera ejecución construye las imágenes de Django e importa automáticamente los *realms* almacenados en `example/keycloak/export`. El proxy expone un certificado autofirmado; impórtalo desde `example/nginx/certs/ca.pem` o acepta la advertencia de tu navegador al visitar las URLs.
+
+3. **Verifica que los contenedores levantaron correctamente.** Usa los comandos siguientes para confirmar que todos aparecen con estado `Up` y que Keycloak terminó de importar el realm:
+
+   ```bash
+   docker compose ps
+   docker compose logs keycloak --tail=20
+   docker compose logs resource-provider --tail=20
+   docker compose logs resource-provider-api --tail=20
+   ```
+
+   Espera a ver los mensajes `Running the server in development mode` para Keycloak y `Starting development server at http://0.0.0.0:8001/` / `0.0.0.0:8002` para las aplicaciones Django antes de continuar.
+
+4. **Prueba el flujo de autenticación**. Una vez que los contenedores estén en ejecución podrás acceder a los siguientes servicios protegidos por la librería:
+
+   | Servicio | URL | Usuario | Contraseña |
+   | --- | --- | --- | --- |
+   | Aplicación web | https://resource-provider.localhost.yarf.nl/ | `testuser` | `password` |
+   | Django Admin | https://resource-provider.localhost.yarf.nl/admin/ | `admin` | `password` |
+   | API protegida | https://resource-provider-api.localhost.yarf.nl/ | `admin` | `password` |
+   | Keycloak | https://identity.localhost.yarf.nl/ | `admin` | `admin` |
+
+   El cliente `resource-provider` ya cuenta con los roles `realm-management:view-clients`, `realm-management:manage-clients` y `view-users`, por lo que los comandos `python manage.py keycloak_refresh_realm` y `python manage.py keycloak_sync_resources` pueden ejecutarse inmediatamente dentro del contenedor correspondiente. Puedes ejecutarlos dentro del contenedor con `docker compose exec resource-provider python manage.py keycloak_refresh_realm` si quieres validar la sincronización manualmente.
+
+---
+
 ## 🔐 Mejores prácticas para producción
 
 1. **Habilita HTTPS extremo a extremo.** Configura TLS en tu proxy o balanceador y replica los ajustes en Django:
