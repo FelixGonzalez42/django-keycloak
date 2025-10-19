@@ -4,41 +4,32 @@
 Setup for remote user
 =====================
 
-It's not required to create a local User object for every logged in identity.
-If you don't need a local user object you can setup the app to work with a
-remote user. This user behaves like Django's User object but it is not a real
-one.
+Si no necesitas crear un ``User`` en la base de datos por cada identidad autenticada puedes activar el modo **remote user**. En este modo Django Keycloak expone un objeto compatible con ``django.contrib.auth`` que vive solo en memoria.
 
-.. note:: For logging purposes Django admin only works with User objects which
-    are stored in the database. So you cannot use this method to authenticate
-    users for admin usage.
+.. note:: El panel de administración de Django requiere usuarios persistidos en base de datos. No habilites el modo remoto para cuentas que deban acceder al admin.
 
-.. warning:: Set the configuration setting below before running the migrations!
+.. warning:: Ajusta este modo **antes** de ejecutar las migraciones para que la tabla ``openidconnectprofile`` se cree con el modelo correcto.
 
-Set the OIDC Profile model to the remote variant:
+Configura el modelo de perfil OIDC en ``settings.py``:
 
 .. code-block:: python
 
-    # your-project/settings.py
-    KEYCLOAK_OIDC_PROFILE_MODEL = 'django_keycloak.RemoteUserOpenIdConnectProfile'
+    KEYCLOAK_OIDC_PROFILE_MODEL = "django_keycloak.RemoteUserOpenIdConnectProfile"
 
-Configure the remote user middleware:
+Asegúrate de registrar el middleware remoto:
 
 .. code-block:: python
 
     MIDDLEWARE = [
-        ...
-
-        'django_keycloak.middleware.BaseKeycloakMiddleware',
-        'django_keycloak.middleware.RemoteUserAuthenticationMiddleware',
+        # …
+        "django_keycloak.middleware.BaseKeycloakMiddleware",
+        "django_keycloak.middleware.RemoteUserAuthenticationMiddleware",
     ]
 
-By default the class `django_keycloak.remote_user.KeycloakRemoteUser` is used as
-user, this one will be available on the request when authenticated and will be
-returned when you access `RemoteUserOpenIdConnectProfile.user`. If you want
-another class (i.e. you need extra properties) you can configure this class
-using the setting `KEYCLOAK_REMOTE_USER_MODEL`:
+De forma predeterminada se usa ``django_keycloak.remote_user.KeycloakRemoteUser``. Si necesitas atributos adicionales define una clase propia e indícala mediante ``KEYCLOAK_REMOTE_USER_MODEL``:
 
 .. code-block:: python
 
-    KEYCLOAK_REMOTE_USER_MODEL = 'django_keycloak.remote_user.KeycloakRemoteUser'
+    KEYCLOAK_REMOTE_USER_MODEL = "path.to.MyRemoteUser"
+
+El método ``RemoteUserOpenIdConnectProfile.user`` instanciará la clase configurada con los datos devueltos por ``userinfo`` (token de acceso). Puedes extenderla para mapear atributos personalizados.
