@@ -1,55 +1,47 @@
 # Example project
 
-This folder contains an example showcase project for the Django Keycloak project.
+This folder contains the Docker Compose showcase used in the documentation. It
+spins up the following services:
 
-It consists out of three applications:
- - identity server (Keycloak)
- - resource provider (small web application)
- - resource provider (API accessible)
- 
-When running the application everything is pre-configured and ready to use.
+- `identity` – Keycloak with a PostgreSQL backend.
+- `resource-provider` – a small Django web application.
+- `resource-provider-api` – a Django REST-style API protected with bearer tokens.
+- `nginx` – reverse proxy that terminates TLS certificates for the demo domains.
 
-Keycloak version 3.4.3-Final is used since that is the latest version which is 
-commercially supported by Red Hat (SSO).
+## Prerequisites
 
-You can find the docs for this version here: https://www.keycloak.org/archive/documentation-3.4.html
+- Docker and the Compose plugin installed.
+- Local DNS entries for the demo domains. Add the following lines to your
+  `hosts` file so they resolve to `127.0.0.1`:
 
-You can find the following features in the project:
-
-- Authentication (login)
-- Authorisation (permissions)
-- Token Exchange
+  ```text
+  127.0.0.1 resource-provider.localhost.yarf.nl
+  127.0.0.1 resource-provider-api.localhost.yarf.nl
+  127.0.0.1 identity.localhost.yarf.nl
+  ```
 
 ## Run the project
 
-Installation of Docker and Docker-compose is required
+From the repository root run:
 
-Run:
+```bash
+docker compose up --build
+```
 
-    $ docker-compose up
-    
-In your browser visit: https://resource-provider.localhost.yarf.nl/
+The first run builds the Django images and imports the realms from
+`example/keycloak/export`. A self-signed certificate authority is located at
+`example/nginx/certs/ca.pem`; import it into your browser or skip the TLS warning
+when visiting the demo URLs.
 
-Accept the insecure certificate, or add the CA which you can find in `nginx/certs/ca.pem` to your trusted CA's.
+## URLs and credentials
 
-## Credentials
+| Service | URL | Username | Password |
+|---------|-----|----------|----------|
+| Web app | https://resource-provider.localhost.yarf.nl/ | `testuser` | `password` |
+| Web admin | https://resource-provider.localhost.yarf.nl/admin/ | `admin` | `password` |
+| API | https://resource-provider-api.localhost.yarf.nl/ | `admin` | `password` |
+| Keycloak | https://identity.localhost.yarf.nl/ | `admin` | `admin` |
 
-Keycloak admin user:
-
-- username: admin
-- password: password
-
-"Test user" in example Realm
-
-- username: testuser
-- password: password
-
-Django admin user (Resource Provider & Resource Provider API)
-
-- username: admin
-- password: password
-
-## Import/Export
-
-Using the `command` section in the keycloak configuration in the docker-compose file.
-Docs: https://www.keycloak.org/docs/latest/server_admin/index.html#_export_import
+The service account associated with the `resource-provider` client already has
+`realm-management:view-clients`, `realm-management:manage-clients` and
+`view-users` so the synchronization commands in the docs work out of the box.

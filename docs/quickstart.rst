@@ -21,11 +21,12 @@ Instalación de Django Keycloak
       python -m venv .venv
       source .venv/bin/activate
 
-2. Instala Django y la librería:
+2. Instala Django y la librería desde el repositorio:
 
    .. code-block:: bash
 
-      pip install django django-keycloak
+      pip install django
+      pip install "git+https://github.com/Tehnari/django-keycloak.git"
 
 3. Genera un proyecto de ejemplo y entra en él:
 

@@ -22,14 +22,15 @@ Django Keycloak integra la autenticación de **Keycloak** en proyectos Django me
 
 ## 🚀 Quickstart
 
-La forma más rápida de probar la librería es crear un proyecto Django nuevo y conectar un cliente confidencial de Keycloak. Estos pasos están verificados con Python 3.10+, Django 4.2+ y Keycloak 20 o superior.
+La forma más rápida de probar la librería es crear un proyecto Django nuevo y conectar un cliente confidencial de Keycloak. Estos pasos están verificados con Python 3.10+, Django 4.2+ y Keycloak 21 o superior.
 
 1. **Instala las dependencias**
 
    ```bash
    python -m venv .venv
    source .venv/bin/activate
-   pip install django django-keycloak
+   pip install django
+   pip install "git+https://github.com/Tehnari/django-keycloak.git"
    django-admin startproject demo
    cd demo
    ```
