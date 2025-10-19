@@ -121,21 +121,56 @@ Example project
 ===============
 
 An end-to-end Docker Compose demo lives in ``example/``. It provisions Keycloak,
-Nginx, a sample Django site and a REST API. To run it:
+Nginx, a sample Django site and a REST API. Follow these steps to exercise the
+integration without touching your existing setup:
 
-#. Ensure ``resource-provider.localhost.yarf.nl``,
-   ``resource-provider-api.localhost.yarf.nl`` and
-   ``identity.localhost.yarf.nl`` resolve to ``127.0.0.1`` on your machine
-   (e.g. via ``/etc/hosts``).
-#. From the repository root execute ``docker compose up --build``.
-#. Accept the bundled certificate authority found at
-   ``example/nginx/certs/ca.pem`` or bypass the certificate warning in the
-   browser.
+1. Install Docker with the Compose plugin and make sure the following hostnames
+   resolve to ``127.0.0.1`` (e.g. by updating ``/etc/hosts``)::
 
-The web application is available at
-``https://resource-provider.localhost.yarf.nl/`` (``testuser`` / ``password``),
-while Keycloak runs at ``https://identity.localhost.yarf.nl/`` (``admin`` /
-``admin``).
+       127.0.0.1 resource-provider.localhost.yarf.nl
+       127.0.0.1 resource-provider-api.localhost.yarf.nl
+       127.0.0.1 identity.localhost.yarf.nl
+
+2. From the repository root run::
+
+       docker compose up --build
+
+   The first invocation builds the Django images and imports the preconfigured
+   realms shipped at ``example/keycloak/export``. TLS is terminated by Nginx
+   using a self-signed certificate authority stored at
+   ``example/nginx/certs/ca.pem``; import it into your browser or accept the
+   warning when visiting the demo URLs.
+
+3. Confirm that all containers are running and that Keycloak finished importing
+   the realm::
+
+       docker compose ps
+       docker compose logs keycloak --tail=20
+       docker compose logs resource-provider --tail=20
+       docker compose logs resource-provider-api --tail=20
+
+   Wait for the ``Running the server in development mode`` message in the
+   Keycloak logs and ``Starting development server`` lines for the Django apps
+   before proceeding.
+
+4. Once the containers are up, access the following services:
+
+   ================== =============================================== ============ ===========
+   Service            URL                                             Username     Password
+   ================== =============================================== ============ ===========
+   Web application    ``https://resource-provider.localhost.yarf.nl/`` ``testuser`` ``password``
+   Django admin       ``https://resource-provider.localhost.yarf.nl/admin/`` ``admin`` ``password``
+   Protected API      ``https://resource-provider-api.localhost.yarf.nl/`` ``admin`` ``password``
+   Keycloak console   ``https://identity.localhost.yarf.nl/``          ``admin``   ``admin``
+   ================== =============================================== ============ ===========
+
+   The ``resource-provider`` client already owns the
+   ``realm-management:view-clients``, ``realm-management:manage-clients`` and
+   ``view-users`` roles, so commands such as ``python manage.py
+   keycloak_refresh_realm`` and ``python manage.py keycloak_sync_resources`` can
+   be executed immediately inside the running containers. Use
+   ``docker compose exec resource-provider python manage.py keycloak_refresh_realm``
+   if you would like to trigger the synchronization manually.
 
 Development
 ===========
