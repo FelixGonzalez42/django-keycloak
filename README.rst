@@ -136,8 +136,11 @@ integration without touching your existing setup:
        docker compose up --build
 
    The first invocation builds the Django images and imports the preconfigured
-   realms shipped at ``example/keycloak/export``. TLS is terminated by Nginx
-   using a self-signed certificate authority stored at
+   realms shipped at ``example/keycloak/export``. The Compose file pins
+   ``quay.io/keycloak/keycloak:24.0.5`` and ``postgres:15`` — the versions that
+   were verified against those exports — so only bump the tags if you regenerate
+   the backup on matching releases. TLS is terminated by Nginx using a
+   self-signed certificate authority stored at
    ``example/nginx/certs/ca.pem``; import it into your browser or accept the
    warning when visiting the demo URLs.
 

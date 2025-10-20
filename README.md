@@ -126,7 +126,7 @@ Si prefieres probar la integración sin crear un proyecto desde cero, el reposit
    docker compose up --build
    ```
 
-   La primera ejecución construye las imágenes de Django e importa automáticamente los *realms* almacenados en `example/keycloak/export`. El proxy expone un certificado autofirmado; impórtalo desde `example/nginx/certs/ca.pem` o acepta la advertencia de tu navegador al visitar las URLs.
+   La primera ejecución construye las imágenes de Django e importa automáticamente los *realms* almacenados en `example/keycloak/export`. El `docker-compose.yml` fija `quay.io/keycloak/keycloak:24.0.5` y `postgres:15` porque son las versiones validadas con dichos exports; ajusta las etiquetas solo si cuentas con un respaldo compatible. El proxy expone un certificado autofirmado; impórtalo desde `example/nginx/certs/ca.pem` o acepta la advertencia de tu navegador al visitar las URLs.
 
 3. **Verifica que los contenedores levantaron correctamente.** Usa los comandos siguientes para confirmar que todos aparecen con estado `Up` y que Keycloak terminó de importar el realm:
 

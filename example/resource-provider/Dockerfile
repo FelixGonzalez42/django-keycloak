@@ -8,7 +8,7 @@ COPY ./poetry.lock ./pyproject.toml /usr/src/app/
 
 WORKDIR /usr/src/app
 
-RUN poetry install
+RUN poetry install --no-root
 
 COPY . /usr/src/app
 
